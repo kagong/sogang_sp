@@ -5,22 +5,34 @@
 #include<sys/stat.h>
 #include"hash.h"
 #include"functions.h"
-#include"20151575.h"
+
 #define MEM_MAX 65536*16
+
+//Error Checking Mecro
 #define ARG_COUNT_CHECK(num1, num2) do{\
-    if((num1) != (num2))\
-    return 0;\
+    if((num1) != (num2)){\
+        printf("Arguments Error!\n");\
+    return 0;}\
 }while(0)
 
 #define MEM_IDX_CHECK(start, end) do{\
-    if((end) < (start))\
-    return 0;\
-    if((start) < 0 || (start)>= 65536 * 16)\
-    return 0;\
-    if((end) < 0 || (end)>= 65536 * 16)\
-    return 0;\
+    if(((end) < (start)) \
+    || ((start) < 0 || (start)>= 65536 * 16)\
+      ||((end) < 0 || (end)>= 65536 * 16)){\
+        printf("Index Error!\n");\
+    return 0;}\
 }while(0)
 
+#define HEX_CONVERT_CHECK(ptr) do{\
+    if((ptr)!=NULL && *(ptr) != 0){\
+        printf("It Isn't Hex\n");\
+        return 0;}\
+}while(0)
+
+/*
+   DataStructure For History
+   - Implemented as a linked list
+   */
 typedef struct _node{
     char *cmd;
     struct _node *next;
@@ -35,6 +47,10 @@ Hi_Head *hi_head = NULL;
 
 unsigned char* mem_head = NULL;
 
+/*
+   Function for
+   init meme and hash for using opcodetable 
+   */
 void functions_init(){
     hash_init();
     opcode_input();
@@ -46,22 +62,27 @@ void functions_init(){
     
 }
 
+//Two list Deallocation
 void functions_free(){
     history_free();
     hash_free();
     free(mem_head);
 }
 
+//Push new node to history list
 void history_push(char* command){	
 
+    int len;
     Hi_Node *new = NULL;
+    
+    len = strlen(command) + 1;
+
     new = (Hi_Node*)malloc(sizeof(Hi_Node));
-    new -> cmd = (char*)malloc(sizeof(char)*MAX_CMD);
+    new -> cmd = (char*)malloc(sizeof(char)*len);
     new -> next = NULL;
-    strncpy(new -> cmd, command, MAX_CMD);
+    strcpy(new -> cmd, command);
 
-    if(hi_head -> front == NULL){
-
+    if(hi_head -> front == NULL){ // First node
         hi_head -> front = new;	
         hi_head -> back = new;	
     }
@@ -71,6 +92,8 @@ void history_push(char* command){
     }
 
 }
+
+// Except the history node when invaild command is entered
 void history_pop(){
     Hi_Node *temp = NULL;
     temp = hi_head -> front;
@@ -86,7 +109,7 @@ void history_pop(){
         hi_head -> front = hi_head -> back = NULL;
     }
     else{
-        while(temp -> next != hi_head -> back)
+        while(temp -> next != hi_head -> back) //find in front of the last node
           temp = temp -> next;
 
         free(temp -> next -> cmd);
@@ -94,6 +117,8 @@ void history_pop(){
         hi_head -> back = temp;
     }
 }
+
+//Deallocation Resource
 void history_free(){
     Hi_Node *temp = NULL, *temp2 = NULL;
     temp = hi_head -> front;
@@ -107,6 +132,8 @@ void history_free(){
     free(hi_head);
 }
 
+
+//Print Shell
 int help(int argc, char** argv){
     ARG_COUNT_CHECK(argc,0);
 
@@ -123,6 +150,7 @@ int help(int argc, char** argv){
     return 1;
 }
 
+//Function for dir list
 int dir(int argc, char** argv){
     ARG_COUNT_CHECK(argc, 0);
     struct dirent *entry;
@@ -131,15 +159,15 @@ int dir(int argc, char** argv){
     dp = opendir(".");
     if(dp == NULL) return 0;
     while((entry = readdir(dp))){
-        if(strcmp(".",entry->d_name) == 0 || strcmp("..",entry->d_name) == 0)
+        if(strcmp(".",entry->d_name) == 0 || strcmp("..",entry->d_name) == 0) //Except now and parent dir
           continue;
         printf("%s",entry->d_name);
         stat(entry->d_name,&info);
-        switch(info.st_mode & S_IFMT){
-          case S_IFDIR: printf("/\t");break;
+        switch(info.st_mode & S_IFMT){      //Masking 
+          case S_IFDIR: printf("/\t");break;    //dir bit
 
-          case S_IFREG:
-                        if((info.st_mode & S_IRWXU & S_IXUSR) != 0)
+          case S_IFREG:                         
+                        if((info.st_mode & S_IRWXU & S_IXUSR) != 0)   //Excute bit
                           printf("*\t");
                         else
                           printf("\t");
@@ -159,16 +187,21 @@ int dir(int argc, char** argv){
 
 int quit(int argc, char** argv){
     ARG_COUNT_CHECK(argc, 0);
-
     return 1;
 }
+
+/* Function for 
+   Until now, save the vaild commands
+   */
 int history(int argc, char** argv){
     ARG_COUNT_CHECK(argc, 0);
     int i = 0;
     Hi_Node * temp = NULL;
+
     temp = hi_head -> front;
-    if(hi_head -> front == hi_head -> back)
+    if(hi_head -> front == hi_head -> back) //when First command is entered as "history"
       return 1;
+
     while(temp != NULL){
 
         printf("%d\t%s\n",i,temp -> cmd);
@@ -178,11 +211,17 @@ int history(int argc, char** argv){
     }
     return 1;
 }
+
+/*Function for
+  printing Memory value
+   */
 int dump(int argc, char** argv){
     static int prev_end=0;
     char* ptr1 = NULL, *ptr2 = NULL;
     int start=0, end=0;
     int i,j;
+
+    //Indexing by number of Arguments
     if(argc == 0){
         start = prev_end;
         end = start + 160-1;
@@ -190,6 +229,7 @@ int dump(int argc, char** argv){
     else{
         start = strtol(argv[0],&ptr1,16);
         MEM_IDX_CHECK(0, start);
+
         if(argc == 1)
           end =start + 160-1;
         else {
@@ -197,26 +237,28 @@ int dump(int argc, char** argv){
           MEM_IDX_CHECK(start, end);
         }
     }
-    if(ptr1!=NULL && *ptr1 != 0) return 0;
-    if(ptr2!=NULL && *ptr2 != 0) return 0;
+
+    HEX_CONVERT_CHECK(ptr1);
+    HEX_CONVERT_CHECK(ptr2);
 
     if(end >= MEM_MAX)
       end = MEM_MAX - 1;
 
     prev_end = end + 1;
+
     if(prev_end >= MEM_MAX)
       prev_end = 0;
 
-    for(i = start / 16 ; i <= end / 16 ; i++){
+    for(i = start / 16 ; i <= end / 16 ; i++){      // line iter
         printf("%06X ",i*16);
-        for( j = 0 ; j <16 ; j++){
+        for( j = 0 ; j <16 ; j++){                  // mem value iter
             if( start <= i*16 + j && i*16 + j <= end)
               printf("%02X ",mem_head[i*16 + j]);
             else
               printf("   ");
         }
         printf("; ");
-        for(j = 0 ; j <16 ; j++){
+        for(j = 0 ; j <16 ; j++){                   //mem ascil iter
             if( (i*16 + j > end && start > i*16 + j) ||  (mem_head[i*16 + j] == 0))
               printf(".");
             else if( 0x20 <= mem_head[i*16 + j] && mem_head[i*16 + j] <=0x7E)
@@ -229,21 +271,36 @@ int dump(int argc, char** argv){
     }
     return 1;
 }
+
+/*
+   Function for
+   Assign a value to a specific memory 
+   */
 int edit(int argc, char** argv){
     ARG_COUNT_CHECK(argc, 2);
+
     char* ptr1 = NULL, *ptr2 = NULL;
     int index = strtol(argv[0],&ptr1,16);
     int hex = strtol(argv[1],&ptr2,16);
 
-    if(ptr1!=NULL && *ptr1 != 0) return 0;
-    if(ptr2!=NULL && *ptr2 != 0) return 0;
+    HEX_CONVERT_CHECK(ptr1);
+    HEX_CONVERT_CHECK(ptr2);
     MEM_IDX_CHECK(0, index);
-    if( 255 < hex || hex < 0) return 0;
+
+    if( 255 < hex || hex < 0){
+        printf("Hex Value Error\n");
+        return 0;
+    }
 
     mem_head[index] = (unsigned char)hex;
 
     return 1;
 }
+
+/*
+   Function for
+   Assign a value to specific range of memory 
+   */
 int fill(int argc, char** argv){
     ARG_COUNT_CHECK(argc, 3);
 
@@ -253,44 +310,59 @@ int fill(int argc, char** argv){
     int hex = strtol(argv[2],&ptr3,16);
     int i;
 
-    if(ptr1!=NULL && *ptr1 != 0) return 0;
-    if(ptr2!=NULL && *ptr2 != 0) return 0;
-    if(ptr3!=NULL && *ptr3 != 0) return 0;
+    HEX_CONVERT_CHECK(ptr1);
+    HEX_CONVERT_CHECK(ptr2);
+    HEX_CONVERT_CHECK(ptr3);
     MEM_IDX_CHECK(start, end);
-    if(255 < hex || hex < 0) return 0;
+
+    if(255 < hex || hex < 0) {
+        printf("Hex Value Error\n");
+        return 0;
+    }
 
     for( i = start ; i <= end ; i++)
       mem_head[i] = (unsigned char)hex;
+
     return 1;
 }
+
+/*
+   Function for
+   Assign a zero to all memory
+   */
 int reset(int argc, char** argv){
     ARG_COUNT_CHECK(argc, 0);
     int i;
+
     for( i = 0 ; i <= 16 * 65536 ; i++)
       mem_head[i] = 0;
 
     return 1;
 }
+
+
+/*
+   Function for
+   Read "opcode.txt" and push it to hash_list
+   */
 void opcode_input(){
     FILE* fp = NULL;
-    char name[10], line[MAX_CMD]; 
+    char name[10], line[10]; 
     int opcode, format;
 
     fp = fopen("opcode.txt","r");
-    while(fscanf(fp,"%s",line) != -1){
-
-        opcode = strtol(line,NULL,16);
-
-        fscanf(fp,"%s",line);
-        strcpy(name, line);
-
-        fscanf(fp,"%s",line);
+    while(fscanf(fp,"%X %s %s",&opcode,name,line) != EOF){
         format = line[0] -'0';
         push_hash_node(opcode, name, format);
     }
 
     fclose(fp);
 }
+
+/*
+   Function for
+   Search opcode and Print it
+   */
 int opcode(int argc, char** argv){
 
     ARG_COUNT_CHECK(argc, 1);
@@ -299,11 +371,16 @@ int opcode(int argc, char** argv){
     opcode = hash_search(ptr);
 
     if(opcode == -1)
-      printf("opcode doesn't exist\n");
+      printf("Opcode Doesn't Exist\n");
     else  
       printf("opcode is %02x\n",opcode);
     return 1;
 }
+
+/*
+   Function for
+   print all opcode
+   */
 int opcodelist(int argc, char** argv){
     ARG_COUNT_CHECK(argc, 0);
     hash_traversal();

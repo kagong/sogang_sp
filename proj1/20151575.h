@@ -1,6 +1,5 @@
 #ifndef _20151575_H
 #define _20151575_H
-#define MAX_CMD 256
 
 void command_nomalization(char* );
 void change_tab_to_space(char *);

@@ -2,6 +2,12 @@
 #include<string.h>
 #include<stdlib.h>
 #include "hash.h"
+
+
+/*
+   DataStructure - Hash
+   -Implemented as a linked list
+   */
 typedef struct _hash_node{
     int opcode;
     char name[10];
@@ -18,6 +24,10 @@ typedef struct _bucket{
 
 Hash_bucket *hash_head = NULL;
 
+/*
+   Function for
+   init hash list
+   */
 void hash_init(){
     Hash_bucket* temp = NULL;
     int i;
@@ -40,6 +50,10 @@ void hash_init(){
 
 }
 
+/*
+   Function for
+   push new node to hash list
+   */
 void push_hash_node(int opcode, char name[10], int format){
     Hash_Node* new = NULL;
     Hash_bucket* temp = NULL;
@@ -54,9 +68,10 @@ void push_hash_node(int opcode, char name[10], int format){
 
     index = hash_func(&name[0]);
     temp = hash_head;
-    for( i = 1 ; i < index ; i++)
+    for( i = 1 ; i < index ; i++)             //find the index's bucket
       temp = temp -> next;
-    if(temp -> back == NULL)
+
+    if(temp -> back == NULL)                  //first node
       temp -> front = temp -> back =new;
     else{
         temp -> back -> next = new ;
@@ -64,6 +79,10 @@ void push_hash_node(int opcode, char name[10], int format){
     }
 }
 
+/*
+   Function for
+   calculate hash value
+   */
 int hash_func(char *id){
     int sum = 1 , i;
     for(i = 0 ; i < 10; i++){
@@ -75,15 +94,21 @@ int hash_func(char *id){
     return sum%21;
 }
 
+/*
+   Function for
+   Deallocation resource for hash
+   */
 void hash_free(){
     Hash_bucket *iter = NULL, *prev = NULL;
     Hash_Node *temp = NULL;
     for(iter = hash_head; iter != NULL; iter = iter ->next){
         if(prev) free(prev);
+
         if(iter ->front == NULL){
             prev = iter;
             continue;
         }
+
         while(iter -> front -> next != NULL){
             temp = iter -> front -> next;
             iter -> front -> next = iter -> front -> next -> next;
@@ -96,6 +121,10 @@ void hash_free(){
     if(prev) free(prev);
 
 }
+/*
+   Function for
+   name-based hash search
+   */
 int hash_search(char *name){
     Hash_bucket *btemp = hash_head;
     Hash_Node *ntemp = NULL;
@@ -117,6 +146,10 @@ int hash_search(char *name){
     return ntemp->opcode;
     
 }
+/*
+   Function for
+   hash ordering travel and print it
+   */
 void hash_traversal(){
 
     Hash_bucket *btemp = hash_head;
