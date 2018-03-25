@@ -1,6 +1,6 @@
 CC = gcc
 OBJS = 20151575.o functions.o hash.o
-TARGET = 20151575
+TARGET = 20151575.out
 
 .SUFFIXES: .c .o
 

@@ -194,7 +194,7 @@ int dump(int argc, char** argv){
           end =start + 160-1;
         else {
           end = strtol(argv[1],&ptr2,16);
-          MEM_IDX_CHECK(0, end);
+          MEM_IDX_CHECK(start, end);
         }
     }
     if(ptr1!=NULL && *ptr1 != 0) return 0;
@@ -208,10 +208,10 @@ int dump(int argc, char** argv){
       prev_end = 0;
 
     for(i = start / 16 ; i <= end / 16 ; i++){
-        printf("%06x ",i*16);
+        printf("%06X ",i*16);
         for( j = 0 ; j <16 ; j++){
             if( start <= i*16 + j && i*16 + j <= end)
-              printf("%02x ",mem_head[i*16 + j]);
+              printf("%02X ",mem_head[i*16 + j]);
             else
               printf("   ");
         }
@@ -219,8 +219,10 @@ int dump(int argc, char** argv){
         for(j = 0 ; j <16 ; j++){
             if( (i*16 + j > end && start > i*16 + j) ||  (mem_head[i*16 + j] == 0))
               printf(".");
-            else
+            else if( 0x20 <= mem_head[i*16 + j] && mem_head[i*16 + j] <=0x7E)
               printf("%c",mem_head[i*16 + j]);
+            else
+              printf(".");
 
         }
         printf("\n");
@@ -236,7 +238,7 @@ int edit(int argc, char** argv){
     if(ptr1!=NULL && *ptr1 != 0) return 0;
     if(ptr2!=NULL && *ptr2 != 0) return 0;
     MEM_IDX_CHECK(0, index);
-    if(hex < 0) return 0;
+    if( 255 < hex || hex < 0) return 0;
 
     mem_head[index] = (unsigned char)hex;
 
@@ -255,7 +257,7 @@ int fill(int argc, char** argv){
     if(ptr2!=NULL && *ptr2 != 0) return 0;
     if(ptr3!=NULL && *ptr3 != 0) return 0;
     MEM_IDX_CHECK(start, end);
-    if(hex < 0) return 0;
+    if(255 < hex || hex < 0) return 0;
 
     for( i = start ; i <= end ; i++)
       mem_head[i] = (unsigned char)hex;
