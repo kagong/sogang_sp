@@ -150,8 +150,8 @@ int help(int argc, char** argv){
     printf("reset\n");	
     printf("opcode mnemonic\n");	
     printf("opcodelist\n");	
-    printf("assemble\n");	
-    printf("type\n");	
+    printf("assemble filename\n");	
+    printf("type filename\n");	
     printf("symbol\n");	
     return 1;
 }
