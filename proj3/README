@@ -1,0 +1,23 @@
+this is sogang sic/xc machine interface, assembler linker loader
+name : Yun Je Hyeong
+Student Id: 20151575
+
+1. make
+2. ./20151575.out
+3. help
+4. select command
+5. quit
+
+- assembler
+-> assemble filename
+
+-link loader
+->progadddr [addr]
+->loader [filename1] [filename2] [filename2]
+
+-run & debugger
+-> after loding
+-> bp [address]
+-> bp :print all bp
+-> bp clear
+-> run

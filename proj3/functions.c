@@ -156,10 +156,12 @@ int help(int argc, char** argv){
     printf("assemble filename\n");	
     printf("type filename\n");	
     printf("symbol\n");	
-    printf("progaddr\n");
-    printf("loader\n");
+    printf("progaddr [address]\n");
+    printf("loader [filename1] [filename2] [filename3]\n");
     printf("run\n");
     printf("bp\n");
+    printf("bp [address]\n");
+    printf("bp clear\n");
     return 1;
 }
 
@@ -513,9 +515,24 @@ int call_loader(int argc, char** argv){
 
     retval = loader(first,second,third,num);
 
-    if(fclose(first) || fclose(second) || fclose(third)){
-        printf("file close error!\n");
-        return 0;
+    switch(num){
+        case 3:
+            if(fclose(third)){
+                 printf("file close error!\n");
+                return 0;
+            }
+        case 2:
+            if(fclose(second)){
+                 printf("file close error!\n");
+                return 0;
+            }
+        case 1:
+            if(fclose(first)){
+                 printf("file close error!\n");
+                return 0;
+            }
+        case 0:
+            break;
     }
     return retval;
 }

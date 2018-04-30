@@ -37,6 +37,7 @@ int check_tables();
 void load_obj(FILE* fp);
 int search_extern_table(char name[7]);
 void print_load_map();
+//이름 정규화
 void name_nomal(char name[7]){
     int i;
     for(i = 0 ; i < 7 ; i++){
@@ -57,6 +58,7 @@ void set_progaddr(int addr){
 int get_progaddr(){
     return prog_addr;
 }
+//자원 해제
 void link_load_free(){
     int i;
     struct symbol_node* temp = NULL;
@@ -74,6 +76,7 @@ void link_load_free(){
         extern_max = 0;
     }
 }
+//pass 1 pass2 call
 int loader(FILE *first,FILE *second,FILE *third,int num){
     int retval;
     link_load_free();//끝날때 한번더 free
@@ -94,7 +97,7 @@ int link_pass_1(FILE *first,FILE *second,FILE *third,int num){
     int error_flag=0;
     switch(num){
         case 3:
-            insert_link_tables(first);
+            insert_link_tables(first);//참조 테이블과 symbol table 생성
             insert_link_tables(second);
             insert_link_tables(third);
             break;
@@ -111,7 +114,7 @@ int link_pass_1(FILE *first,FILE *second,FILE *third,int num){
             goto done;
             break;
     }
-    error_flag = !check_tables();        //reference table
+    error_flag = !check_tables();        //reference table에 유효하지 않는 symbol 확인
 done:
     if(error_flag)
         return 0;
@@ -121,7 +124,7 @@ done:
 int link_pass_2(FILE *first,FILE *second,FILE *third,int num){
     switch(num){
         case 3:
-            load_obj(first);
+            load_obj(first);        //로딩 functions
             load_obj(second);
             load_obj(third);
             break;
@@ -260,6 +263,12 @@ void load_obj(FILE* fp){
     hex_temp[6] = '\0';
     while(fgets(line,256,fp) != NULL){
         add_flag = 0;
+        ptr = strchr(line,'\n');
+        if(ptr != NULL)
+            *ptr = '\0';
+        ptr = strchr(line,'\r');
+        if(ptr != NULL)
+            *ptr = '\0';
         switch(line[0]){
             case '.':
                 break;
@@ -270,7 +279,7 @@ void load_obj(FILE* fp){
                 break;
             case 'R':
                 max = strlen(line);
-                for( i = 1 ; i + 7 < max; i += 8){
+                for( i = 1 ; i < max; i += 8){
 
                     strncpy(hex_temp,&line[i],2);
                     hex_temp[2]='\0';
@@ -305,6 +314,7 @@ void load_obj(FILE* fp){
 
                 break;
             case 'M':
+
                 strncpy(hex_temp,&line[1],6);
                 start_addr = strtol(hex_temp,&ptr,16) + reference_addr[0];
 
@@ -326,7 +336,6 @@ void load_obj(FILE* fp){
                     value += reference_addr[target-1];
                 else
                     value -= reference_addr[target-1];
-
                 value = (value <<(32 - hex*4)) >>(32 - hex*4);
                 value += upper;
                 mem_load(start_addr,value,(hex+1)/2);
@@ -339,6 +348,7 @@ void load_obj(FILE* fp){
         }
     }
 }
+//symbol table 을 탐색 해주는 함수로써 symbol의 addr을 반환
 int search_extern_table(char name[7]){
     int i;
     struct symbol_node *temp = NULL;

@@ -9,11 +9,11 @@
 #define LT 1
 #define EQ 2
 #define GT 3
-
+//레지스터들
 int A; int X; int L;
 int B; int S; int T;
 int F; int SW; int PC;
-
+//break point 
 unsigned int bp_table[3000];
 int bp_max = 0;
 
@@ -60,16 +60,17 @@ void register_dump(int flag,int addr);
 void register_init(){
     A = X = L = B = S = T = F = SW = 0;
 }
+//실행 시킴
 int run(int addr){
     int i,format,error_flag = 0,prev;
     unsigned int target = 0;
     PC = addr;
     //fetch
-    //rsub 가 0으로 jump하면 -1로 세팅하자ㅇ좀더 ㅇ작업 해주세
     while(PC != -1){
         prev = PC;
         //fetch
         target = (unsigned int)mem_store(PC,BYTE);
+
         //decode & operand fetch
         switch(target & 0xF0){
             case 0XC0:      //format 1
@@ -80,26 +81,25 @@ int run(int addr){
             case 0X90:      //format 2
             case 0XA0:
             case 0XB0:
-                PC+=2;
                 format = 2;
                 target <<= BYTE_BIT;
                 target |= (unsigned int)mem_store(PC+BYTE ,BYTE);
+                PC+=2;
                 break;
             default:        //format 3 or 4
                 target = (target << 2*BYTE_BIT ) | (unsigned int)mem_store(PC+BYTE ,2*BYTE);
-                if(target & 0x001000 == 0){
+                if((target & 0x001000) == 0){
                     format = 3;
                     PC+=3;
                 }
                 else{
                     format = 4;
-                    PC += 4;
                     target <<= BYTE_BIT;
                     target |= (unsigned int)mem_store(PC+3*BYTE ,BYTE);
+                    PC += 4;
                 }
                 break;
         }
-
         //excute
         switch(format){
             case 1:
@@ -116,7 +116,7 @@ int run(int addr){
                 goto done;
         }
         for(i = 0 ; i < bp_max ; i++){
-            if(prev <= bp_table[i] && bp_table[i] < PC){
+            if(prev <= bp_table[i] && bp_table[i] < prev+format){
                 register_dump(0,bp_table[i]);
                 return PC;
             }
@@ -128,6 +128,7 @@ done:
         printf("Error! In run time\n");
         return -1;
     }
+    PC = 0;
     register_dump(1,0);
     return 0;
 
@@ -173,7 +174,7 @@ void format_2_functions(unsigned int instruction){
         case 0x94: SUBR(reg1,reg2); break;
         case 0xB8: TIXR(reg1,reg2); break;
         default: 
-                printf("error! unknown function\n");
+                printf("error! %X unknown function\n",instruction);
                 return ;
     }
 }
@@ -230,6 +231,8 @@ void format_3_4_functions(unsigned int instruction,int format){
         x_flag = (instruction & 0x00008000) >> 15;
         bp_flag = (instruction & 0x00006000) >> 13;
         address = instruction & 0x00000FFF;
+        if((address & 0x0000800) != 0)
+            address |= 0xFFFFF000;
     }
     else{
         opcode = (instruction &  0xFC000000) >> 24;
@@ -237,6 +240,8 @@ void format_3_4_functions(unsigned int instruction,int format){
         x_flag = (instruction &  0x00800000) >> 23;
         bp_flag = (instruction &  0x00600000) >> 21;
         address = instruction &  0x000FFFFF;
+        if(address & 0x00800000 == 1)
+            address |= 0xFF000000;
     }
     if(bp_flag == 0x01)//pc relative addressing
         address += PC;
@@ -246,10 +251,6 @@ void format_3_4_functions(unsigned int instruction,int format){
     if(x_flag)
         address += X;
 
-    if(format == 3)
-        address &= 0x00000FFF;
-    else
-        address &= 0x000FFFFF;
     switch(opcode){
         case 0X18: ADD(address,ni_flag); break;
         case 0X28: COMP(address,ni_flag); break;
@@ -329,6 +330,7 @@ void J(int address,int ni_flag){
     else{//indirect
         PC = mem_store(address,3);
     }
+    PC = PC == 0 ? -1 : PC;
 }
 void JEQ(int address,int ni_flag){
     if(SW != EQ)
@@ -371,79 +373,79 @@ void JSUB(int address,int ni_flag){
 }
 void LDA(int address,int ni_flag){
     if(ni_flag == 0x00 || ni_flag == 0x3){//simple
-        A += mem_store(address,3);
+        A = mem_store(address,3);
     }
     else if(ni_flag == 0x1){//immediate
-        A += address;
+        A = address;
     }
     else{//indirect
-        A += mem_store(mem_store(address,3),3);
+        A = mem_store(mem_store(address,3),3);
     }
 }
 void LDB(int address,int ni_flag){
     if(ni_flag == 0x00 || ni_flag == 0x3){//simple
-        B += mem_store(address,3);
+        B = mem_store(address,3);
     }
     else if(ni_flag == 0x1){//immediate
-        B += address;
+        B = address;
     }
     else{//indirect
-        B += mem_store(mem_store(address,3),3);
+        B = mem_store(mem_store(address,3),3);
     }
 }
 void LDCH(int address,int ni_flag){
     if(ni_flag == 0x00 || ni_flag == 0x3){//simple
-        A += mem_store(address,1);
+        A = mem_store(address,1);
     }
     else if(ni_flag == 0x1){//immediate
-        A += address;
+        A = address;
     }
     else{//indirect
-        A += mem_store(mem_store(address,3),1);
+        A = mem_store(mem_store(address,3),1);
     }
 }
 void LDL(int address,int ni_flag){
     if(ni_flag == 0x00 || ni_flag == 0x3){//simple
-        L += mem_store(address,3);
+        L = mem_store(address,3);
     }
     else if(ni_flag == 0x1){//immediate
-        L += address;
+        L = address;
     }
     else{//indirect
-        L += mem_store(mem_store(address,3),3);
+        L = mem_store(mem_store(address,3),3);
     }
 }
 void LDS(int address,int ni_flag){
     if(ni_flag == 0x00 || ni_flag == 0x3){//simple
-        S += mem_store(address,3);
+        S = mem_store(address,3);
     }
     else if(ni_flag == 0x1){//immediate
-        S += address;
+        S = address;
     }
     else{//indirect
-        S += mem_store(mem_store(address,3),3);
+        S = mem_store(mem_store(address,3),3);
     }
 }
 void LDT(int address,int ni_flag){
     if(ni_flag == 0x00 || ni_flag == 0x3){//simple
-        T += mem_store(address,3);
+        T = mem_store(address,3);
     }
     else if(ni_flag == 0x1){//immediate
-        T += address;
+        T = address;
     }
     else{//indirect
-        T += mem_store(mem_store(address,3),3);
+        T = mem_store(mem_store(address,3),3);
     }
 }
 void LDX(int address,int ni_flag){
     if(ni_flag == 0x00 || ni_flag == 0x3){//simple
-        X += mem_store(address,3);
+        X = mem_store(address,3);
     }
     else if(ni_flag == 0x1){//immediate
-        X += address;
+        X = address;
     }
     else{//indirect
-        X += mem_store(mem_store(address,3),3);
+        X = mem_store(mem_store(address,3),3);
     }
 }
 void MUL(int address,int ni_flag){
@@ -458,7 +460,7 @@ void MUL(int address,int ni_flag){
     }
 }
 void RSUB(int address,int ni_flag){
-    PC = L == 0 ? -1 : L;
+    PC =L;
 }
 void STA(int address,int ni_flag){
     if(ni_flag == 0x00 || ni_flag == 0x3 || ni_flag == 0x1){//simple immediate
@@ -575,6 +577,7 @@ int bp(char *argument){
         hex = strtol(argument,&ptr,16);
         bp_table[bp_max++] = hex;
     }
+    return 1;
 }
 void register_dump(int flag,int addr){
     printf("\t\t A : %-6X X : %-6X\n",A&0X00FFFFFF,X&0X00FFFFFF);
