@@ -3,12 +3,9 @@
 #include<stdlib.h>
 #include "loader.h"
 #include "functions.h"
+#include "run.h"
 
 int prog_addr;
-
-int A; int X; int L;
-int B; int S; int T;
-int F; int SW; int PC;
 
 struct symbol_node{
     char name[7];
@@ -28,8 +25,7 @@ struct reference_node{
     int Is_vaild;
 }reference_table[3000];
 
-unsigned int bp_table[3000];
-int ref_max = 0,extern_max=0,bp_max=0;
+int ref_max = 0,extern_max=0;
 
 
 int link_pass_1(FILE *first,FILE *second,FILE *third,int num);
@@ -41,7 +37,6 @@ int check_tables();
 void load_obj(FILE* fp);
 int search_extern_table(char name[7]);
 void print_load_map();
-void register_dump(int flag,int addr);
 void name_nomal(char name[7]){
     int i;
     for(i = 0 ; i < 7 ; i++){
@@ -59,11 +54,13 @@ void name_nomal(char name[7]){
 void set_progaddr(int addr){
     prog_addr = addr;
 }
+int get_progaddr(){
+    return prog_addr;
+}
 void link_load_free(){
     int i;
     struct symbol_node* temp = NULL;
     ref_max = 0;
-    A = X = L = B = S = T = F = SW = 0;
     if(extern_max == 0)
         return ;
     else{
@@ -80,6 +77,7 @@ void link_load_free(){
 int loader(FILE *first,FILE *second,FILE *third,int num){
     int retval;
     link_load_free();//끝날때 한번더 free
+    register_init();
     retval = link_pass_1(first,second,third,num);
 
     if(retval){
@@ -375,39 +373,3 @@ void print_load_map(){
     printf("----------------------------------------\n");
     printf("%6s\t%6s\t%-8s\t%04X\n","","","total length",total);
 }
-int run(){
-    int bp_next = 0;
-    PC = prog_addr;
-
-}
-int bp(char *argument){
-    int i;
-    int hex;
-    char *ptr;
-    if(argument == NULL){
-        printf("\tbreakpoint\n");
-        printf("\t----------\n");
-        for(i = 0 ; i < bp_max ; i++)
-            printf("\t%04X\n",bp_table[i]);
-    }
-    else if(strcmp(argument,"clear") == 0){
-        bp_max = 0;
-        printf("\t[ok] clear all breakpoints\n");
-    }
-    else{
-        hex = strtol(argument,&ptr,16);
-        bp_table[bp_max++] = hex;
-    }
-}
-
-void register_dump(int flag,int addr){
-    printf("\t\t A : %-6X X : %-6X\n",A&0X00FFFFFF,X&0X00FFFFFF);
-    printf("\t\t L : %-6X PC: %-6X\n",L&0X00FFFFFF,PC&0X00FFFFFF);
-    printf("\t\t B : %-6X S : %-6X\n",B&0X00FFFFFF,S&0X00FFFFFF);
-    printf("\t\t T : %-6X\n",T&0X00FFFFFF);
-    if(flag)
-        printf("End Program\n");
-    else
-        printf("Stop at checkpoint[%X]\n",addr);
-}
-

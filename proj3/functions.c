@@ -7,6 +7,7 @@
 #include"functions.h"
 #include"assemble.h"
 #include"loader.h"
+#include"run.h"
 
 #define MEM_MAX 65536*16
 
@@ -520,7 +521,11 @@ int call_loader(int argc, char** argv){
 }
 int call_run(int argc, char** argv){
     ARG_COUNT_CHECK(argc, 0);
-    run();
+    int temp;
+    temp = run(get_progaddr());
+    if(temp == -1)
+        return 0;
+    set_progaddr(temp);
     return 1;
 }
 int call_bp(int argc, char** argv){
